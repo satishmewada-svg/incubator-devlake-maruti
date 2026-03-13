@@ -51,7 +51,7 @@ services:
       - postgres17-storage:/var/lib/postgresql
     restart: always
     ports:
-      - 5433:5432 # changed to 5433 to avoid conflict with postgres
+      - 5432:5432
     environment:
       POSTGRES_DB: lake
       POSTGRES_USER: merico
@@ -95,6 +95,7 @@ services:
     environment:
       LOGGING_DIR: /app/logs
       TZ: UTC
+      # LOGOUT_URI: https://xxx.amazoncognito.com/logout?client_id=yyy&logout_uri=http%3A%2F%2Flocalhost%3A4180%2Foauth2%2Fsign_out
     depends_on:
       - mysql
 
@@ -114,25 +115,6 @@ services:
       #ADMIN_PASS: letsdivein
     depends_on:
       - devlake
-
-  # added by me - Metabase for BI dashboards connected to DevLake MySQL
-  metabase:
-    image: metabase/metabase:latest
-    restart: always
-    ports:
-      - 3003:3000
-    volumes:
-      - metabase-storage:/metabase-data
-    environment:
-      MB_DB_TYPE: mysql
-      MB_DB_DBNAME: metabase
-      MB_DB_PORT: 3306
-      MB_DB_USER: merico
-      MB_DB_PASS: merico
-      MB_DB_HOST: mysql
-      TZ: UTC
-    depends_on:
-      - mysql
 
   authproxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.4.0-amd64
@@ -163,4 +145,3 @@ volumes:
   postgres-storage:
   postgres17-storage:
   devlake-log:
-  metabase-storage:
