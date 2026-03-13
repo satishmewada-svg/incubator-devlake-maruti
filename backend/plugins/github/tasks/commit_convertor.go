@@ -36,7 +36,7 @@ func init() {
 var ConvertCommitsMeta = plugin.SubTaskMeta{
 	Name:             "Convert Commits",
 	EntryPoint:       ConvertCommits,
-	EnabledByDefault: false,
+	EnabledByDefault: true,
 	Description:      "Convert tool layer table github_commits into  domain layer table commits",
 	DomainTypes:      []string{plugin.DOMAIN_TYPE_CODE},
 	DependencyTables: []string{
@@ -57,8 +57,8 @@ func ConvertCommits(taskCtx plugin.SubTaskContext) errors.Error {
 	cursor, err := db.Cursor(
 		dal.From("_tool_github_commits gc"),
 		dal.Join(`left join _tool_github_repo_commits grc on (
-			grc.commit_sha = gc.sha
-		)`),
+        grc.commit_sha = gc.sha
+    )`),
 		dal.Select("gc.*"),
 		dal.Where("grc.repo_id = ? AND grc.connection_id = ?", repoId, data.Options.ConnectionId),
 	)
@@ -92,6 +92,7 @@ func ConvertCommits(taskCtx plugin.SubTaskContext) errors.Error {
 				AuthorId:       githubCommit.AuthorEmail,
 				AuthorName:     githubCommit.AuthorName,
 				AuthorEmail:    githubCommit.AuthorEmail,
+				AuthorLogin:    githubCommit.AuthorLogin,
 				AuthoredDate:   githubCommit.AuthoredDate,
 				CommitterName:  githubCommit.CommitterName,
 				CommitterEmail: githubCommit.CommitterEmail,

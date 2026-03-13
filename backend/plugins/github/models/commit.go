@@ -18,8 +18,9 @@ limitations under the License.
 package models
 
 import (
-	"github.com/apache/incubator-devlake/core/models/common"
 	"time"
+
+	"github.com/apache/incubator-devlake/core/models/common"
 )
 
 type GithubCommit struct {
@@ -27,6 +28,7 @@ type GithubCommit struct {
 	AuthorId       int
 	AuthorName     string `gorm:"type:varchar(255)"`
 	AuthorEmail    string `gorm:"type:varchar(255)"`
+	AuthorLogin    string `gorm:"type:varchar(255)"` /// added by me
 	AuthoredDate   time.Time
 	CommitterId    int
 	CommitterName  string `gorm:"type:varchar(255)"`

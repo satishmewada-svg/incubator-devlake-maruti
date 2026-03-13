@@ -36,6 +36,7 @@ import (
 	githubImpl "github.com/apache/incubator-devlake/plugins/github/impl"
 	"github.com/apache/incubator-devlake/plugins/github/models"
 	githubTasks "github.com/apache/incubator-devlake/plugins/github/tasks"
+	graphqlModels "github.com/apache/incubator-devlake/plugins/github_graphql/model"
 	"github.com/apache/incubator-devlake/plugins/github_graphql/model/migrationscripts"
 	"github.com/apache/incubator-devlake/plugins/github_graphql/tasks"
 	"github.com/merico-ai/graphql"
@@ -78,6 +79,8 @@ func (p GithubGraphql) Name() string {
 func (p GithubGraphql) GetTablesInfo() []dal.Tabler {
 	return []dal.Tabler{
 		&models.GithubDeployment{},
+		&graphqlModels.GithubPrReviewThread{},
+		&graphqlModels.GithubPrReviewRequest{},
 	}
 }
 

@@ -35,6 +35,7 @@ type Commit struct {
 	AuthorEmail    string `gorm:"type:varchar(255)"`
 	AuthoredDate   time.Time
 	AuthorId       string `gorm:"type:varchar(255)"`
+	AuthorLogin    string `gorm:"type:varchar(255)"`
 	CommitterName  string `gorm:"type:varchar(255)"`
 	CommitterEmail string `gorm:"type:varchar(255)"`
 	CommittedDate  time.Time

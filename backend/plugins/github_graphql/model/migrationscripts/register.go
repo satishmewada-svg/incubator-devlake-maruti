@@ -26,5 +26,8 @@ func All() []plugin.MigrationScript {
 	return []plugin.MigrationScript{
 		new(flushRawData),
 		new(addFinishedDateToGithubDeployment),
+		new(addGithubPrReviewThreads),
+		new(addPrReviewThreadsIfMissing),
+		new(addGithubPrReviewRequests),
 	}
 }

@@ -109,6 +109,7 @@ func ExtractApiCommits(taskCtx plugin.SubTaskContext) errors.Error {
 			}
 			if commit.Author != nil {
 				githubCommit.AuthorId = commit.Author.Id
+				githubCommit.AuthorLogin = commit.Author.Login
 				results = append(results, commit.Author)
 			}
 			if commit.Committer != nil {

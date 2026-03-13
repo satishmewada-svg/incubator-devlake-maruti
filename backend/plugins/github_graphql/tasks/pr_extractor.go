@@ -22,10 +22,12 @@ import (
 	"regexp"
 
 	"github.com/apache/incubator-devlake/core/errors"
+	"github.com/apache/incubator-devlake/core/models/domainlayer/didgen"
 	"github.com/apache/incubator-devlake/core/plugin"
 	"github.com/apache/incubator-devlake/helpers/pluginhelper/api"
 	"github.com/apache/incubator-devlake/plugins/github/models"
 	githubTasks "github.com/apache/incubator-devlake/plugins/github/tasks"
+	graphqlModels "github.com/apache/incubator-devlake/plugins/github_graphql/model"
 )
 
 var _ plugin.SubTaskEntryPoint = ExtractPrs
@@ -41,6 +43,7 @@ var ExtractPrsMeta = plugin.SubTaskMeta{
 func ExtractPrs(taskCtx plugin.SubTaskContext) errors.Error {
 	data := taskCtx.GetData().(*githubTasks.GithubTaskData)
 	config := data.Options.ScopeConfig
+	prDidGen := didgen.NewDomainIdGenerator(&models.GithubPullRequest{})
 	var labelTypeRegex *regexp.Regexp
 	var labelComponentRegex *regexp.Regexp
 	var err errors.Error
@@ -129,6 +132,34 @@ func ExtractPrs(taskCtx plugin.SubTaskContext) errors.Error {
 				results = append(results, githubReviewRequests)
 			}
 
+			for _, reviewReq := range rawL.ReviewRequests.Nodes {
+				results = append(results, &graphqlModels.GithubPrReviewRequest{
+					ConnectionId:  data.Options.ConnectionId,
+					Repo:          data.Options.Name,
+					PrNumber:      githubPr.Number,
+					PrId:          prDidGen.Generate(data.Options.ConnectionId, githubPr.GithubId),
+					PrGithubId:    githubPr.GithubId,
+					PrUrl:         githubPr.Url,
+					ReviewerId:    reviewReq.RequestedReviewer.User.Id,
+					ReviewerLogin: reviewReq.RequestedReviewer.User.Login,
+					ReviewerName:  reviewReq.RequestedReviewer.User.Name,
+				})
+			}
+			for _, review := range rawL.Reviews.Nodes {
+				if review.Author != nil && review.State != "PENDING" {
+					results = append(results, &graphqlModels.GithubPrReviewRequest{
+						ConnectionId:  data.Options.ConnectionId,
+						Repo:          data.Options.Name,
+						PrNumber:      githubPr.Number,
+						PrId:          prDidGen.Generate(data.Options.ConnectionId, githubPr.GithubId),
+						PrGithubId:    githubPr.GithubId,
+						PrUrl:         githubPr.Url,
+						ReviewerId:    review.Author.Id,
+						ReviewerLogin: review.Author.Login,
+						ReviewerName:  review.Author.Name,
+					})
+				}
+			}
 			for _, apiPullRequestCommit := range rawL.Commits.Nodes {
 				githubCommit, err := convertPullRequestCommit(apiPullRequestCommit)
 				if err != nil {
@@ -145,7 +176,36 @@ func ExtractPrs(taskCtx plugin.SubTaskContext) errors.Error {
 					CommitAuthoredDate: githubCommit.AuthoredDate,
 				}
 				results = append(results, githubPullRequestCommit)
+				results = append(results, &models.GithubRepoCommit{
+					ConnectionId: data.Options.ConnectionId,
+					RepoId:       data.Options.GithubId,
+					CommitSha:    apiPullRequestCommit.Commit.Oid,
+				})
 				extractGraphqlPreAccount(&results, apiPullRequestCommit.Commit.Author.User, data.Options.GithubId, data.Options.ConnectionId)
+			}
+
+			for _, thread := range rawL.ReviewThreads.Nodes {
+				rt := &graphqlModels.GithubPrReviewThread{
+					ConnectionId: data.Options.ConnectionId,
+					Repo:         data.Options.Name,
+					PrNumber:     githubPr.Number,
+					PrId:         prDidGen.Generate(data.Options.ConnectionId, githubPr.GithubId),
+					PrGithubId:   githubPr.GithubId,
+					PrUrl:        githubPr.Url,
+					ThreadId:     thread.Id,
+					IsResolved:   thread.IsResolved,
+					IsOutdated:   thread.IsOutdated,
+				}
+				if len(thread.Comments.Nodes) > 0 {
+					c := thread.Comments.Nodes[0]
+					rt.Comment = c.Body
+					rt.GithubCreatedAt = &c.CreatedAt
+					if c.Author != nil {
+						rt.Author = c.Author.Login
+						extractGraphqlPreAccount(&results, c.Author, data.Options.GithubId, data.Options.ConnectionId)
+					}
+				}
+				results = append(results, rt)
 			}
 			return results, nil
 		},
@@ -208,6 +268,7 @@ func convertPullRequestCommit(prCommit GraphqlQueryCommit) (*models.GithubCommit
 	}
 	if prCommit.Commit.Author.User != nil {
 		githubCommit.AuthorId = prCommit.Commit.Author.User.Id
+		githubCommit.AuthorLogin = prCommit.Commit.Author.User.Login
 	}
 	return githubCommit, nil
 }

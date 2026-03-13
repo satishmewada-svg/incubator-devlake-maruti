@@ -103,6 +103,25 @@ type GraphqlQueryPr struct {
 	ReviewRequests struct {
 		Nodes []ReviewRequestNode `graphql:"nodes"`
 	} `graphql:"reviewRequests(first: 10)"`
+
+	ReviewThreads struct {
+		Nodes []GraphqlQueryReviewThread `graphql:"nodes"`
+	} `graphql:"reviewThreads(first: 100)"`
+}
+
+type GraphqlQueryReviewThread struct {
+	Id         string `graphql:"id"`
+	IsResolved bool   `graphql:"isResolved"`
+	IsOutdated bool   `graphql:"isOutdated"`
+	Comments   struct {
+		Nodes []GraphqlQueryReviewThreadComment `graphql:"nodes"`
+	} `graphql:"comments(first: 1)"`
+}
+
+type GraphqlQueryReviewThreadComment struct {
+	Body      string    `graphql:"body"`
+	CreatedAt time.Time `graphql:"createdAt"`
+	Author    *GraphqlInlineAccountQuery
 }
 
 type ReviewRequestNode struct {
