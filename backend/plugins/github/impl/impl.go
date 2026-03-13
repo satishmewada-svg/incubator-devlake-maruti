@@ -222,6 +222,21 @@ func (p Github) ApiResources() map[string]map[string]plugin.ApiResourceHandler {
 		"connections/:connectionId/proxy/rest/*path": {
 			"GET": api.Proxy,
 		},
+		"users": {
+			"GET": api.GetUsers,
+		},
+		"teams": {
+			"GET": api.GetTeams,
+		},
+		"roles": {
+			"GET": api.GetRoles,
+		},
+		"user-mapping": {
+			"POST": api.SaveUserMapping,
+		},
+		"user-mapping/upload": {
+			"POST": api.UploadUserMapping,
+		},
 		"scope-config/:scopeConfigId/projects": {
 			"GET": api.GetProjectsByScopeConfig,
 		},

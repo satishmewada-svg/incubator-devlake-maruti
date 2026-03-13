@@ -15,19 +15,39 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package crossdomain
+package migrationscripts
 
 import (
-	"github.com/apache/incubator-devlake/core/models/domainlayer"
+	"github.com/apache/incubator-devlake/core/context"
+	"github.com/apache/incubator-devlake/core/errors"
+	"github.com/apache/incubator-devlake/core/plugin"
+	"github.com/apache/incubator-devlake/helpers/migrationhelper"
 )
 
-type User struct {
-	domainlayer.DomainEntity
-	Email        string `gorm:"type:varchar(255)"`
-	Name         string `gorm:"type:varchar(255)"`
+var _ plugin.MigrationScript = (*addUserFullName)(nil)
+
+type addUserFullName struct{}
+
+type user20260312000002 struct {
+	Id           string `gorm:"primaryKey;type:varchar(255)"`
 	UserFullName string `gorm:"type:varchar(255)"`
 }
 
-func (User) TableName() string {
+func (user20260312000002) TableName() string {
 	return "users"
+}
+
+func (*addUserFullName) Up(basicRes context.BasicRes) errors.Error {
+	return migrationhelper.AutoMigrateTables(
+		basicRes,
+		&user20260312000002{},
+	)
+}
+
+func (*addUserFullName) Version() uint64 {
+	return 20260312000002
+}
+
+func (*addUserFullName) Name() string {
+	return "add user_full_name to users table"
 }

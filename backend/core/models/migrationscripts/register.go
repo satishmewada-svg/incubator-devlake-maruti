@@ -143,5 +143,8 @@ func All() []plugin.MigrationScript {
 		new(fixNullPriority),
 		new(modifyCicdDeploymentsToText),
 		new(addCommitAuthorLogin),
+		new(addUserFullName),
+		new(AddRoleIdToTeamUsers),
+		new(addRolesTable),
 	}
 }

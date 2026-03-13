@@ -26,6 +26,7 @@ import {
   ApiOutlined,
   GithubOutlined,
   SlackOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 
 import { DOC_URL } from '@/release';
@@ -69,6 +70,11 @@ export const menuItems: MenuItem[] = [
     key: `${PATH_PREFIX}/keys`,
     label: 'API Keys',
     icon: <KeyOutlined />,
+  },
+  {
+    key: `${PATH_PREFIX}/user-config`,
+    label: 'User Config',
+    icon: <UserOutlined />,
   },
 ];
 

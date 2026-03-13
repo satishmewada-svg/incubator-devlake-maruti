@@ -18,16 +18,17 @@ limitations under the License.
 package crossdomain
 
 import (
-	"github.com/apache/incubator-devlake/core/models/common"
+	"github.com/apache/incubator-devlake/core/models/domainlayer"
 )
 
-type TeamUser struct {
-	TeamId string `gorm:"primaryKey;type:varchar(255)"`
-	UserId string `gorm:"primaryKey;type:varchar(255)"`
-	RoleId string `gorm:"type:varchar(255)"`
-	common.NoPKModel
+type Role struct {
+	domainlayer.DomainEntity
+	Name         string `gorm:"type:varchar(255)"`
+	Alias        string `gorm:"type:varchar(255)"`
+	ParentId     string `gorm:"type:varchar(255)"`
+	SortingIndex int
 }
 
-func (TeamUser) TableName() string {
-	return "team_users"
+func (Role) TableName() string {
+	return "roles"
 }

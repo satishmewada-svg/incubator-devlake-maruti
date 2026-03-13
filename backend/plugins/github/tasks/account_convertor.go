@@ -120,8 +120,19 @@ func ConvertAccounts(taskCtx plugin.SubTaskContext) errors.Error {
 				AvatarUrl:    githubUser.AvatarUrl,
 				Organization: orgStr,
 			}
+
+			domainUserRecord := &crossdomain.User{
+				DomainEntity: domainlayer.DomainEntity{
+					Id: accountIdGen.Generate(data.Options.ConnectionId, githubUser.Id),
+				},
+				Email:        githubUser.Email,
+				Name:         githubUser.Login,
+				UserFullName: githubUser.Name,
+			}
+
 			return []interface{}{
 				domainUser,
+				domainUserRecord,
 			}, nil
 		},
 	})
