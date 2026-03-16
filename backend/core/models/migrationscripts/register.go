@@ -146,5 +146,6 @@ func All() []plugin.MigrationScript {
 		new(addUserFullName),
 		new(AddRoleIdToTeamUsers),
 		new(addRolesTable),
+		new(addTeamRepo),
 	}
 }

@@ -150,17 +150,30 @@ func SaveUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput,
 		return nil, errors.Default.Wrap(jsonErr, "failed to parse request body")
 	}
 
-	teamUser := &crossdomain.TeamUser{
-		TeamId: req.TeamId,
-		UserId: req.UserId,
-		RoleId: req.RoleId,
+	if req.UserId == "" {
+		return nil, errors.Default.New("user_id is required")
 	}
-	teamUser.NoPKModel.CreatedAt = time.Now()
-	teamUser.NoPKModel.UpdatedAt = time.Now()
 
-	saveErr := db.CreateOrUpdate(teamUser)
-	if saveErr != nil {
-		return nil, saveErr
+	// delete existing mapping first /// fix manual update
+	delErr := db.Exec("DELETE FROM team_users WHERE user_id = ?", req.UserId)
+	if delErr != nil {
+		return nil, delErr
+	}
+
+	// only insert if team or role selected
+	if req.TeamId != "" || req.RoleId != "" {
+		teamUser := &crossdomain.TeamUser{
+			TeamId: req.TeamId,
+			UserId: req.UserId,
+			RoleId: req.RoleId,
+		}
+		teamUser.NoPKModel.CreatedAt = time.Now()
+		teamUser.NoPKModel.UpdatedAt = time.Now()
+
+		saveErr := db.CreateOrUpdate(teamUser)
+		if saveErr != nil {
+			return nil, saveErr
+		}
 	}
 
 	return &plugin.ApiResourceOutput{
@@ -169,149 +182,6 @@ func SaveUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput,
 	}, nil
 }
 
-// UploadUserMapping uploads CSV/Excel and maps users to teams/roles by name
-// @Summary upload user mapping file
-// @Tags plugins/github
-// @Router /plugins/github/user-mapping/upload [POST]
-// func UploadUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
-// 	db := basicRes.GetDal()
-
-// 	// read file from multipart form
-// 	file, _, err2 := input.Request.FormFile("file")
-// 	if err2 != nil {
-// 		return nil, errors.Default.Wrap(err2, "no file provided")
-// 	}
-// 	defer file.Close()
-
-// 	// detect if CSV or Excel by filename
-// 	fileHeader, _, _ := input.Request.FormFile("file")
-// 	_ = fileHeader
-
-// 	// read all bytes
-// 	fileBytes, readErr := io.ReadAll(file)
-// 	if readErr != nil {
-// 		return nil, errors.Default.Wrap(readErr, "failed to read file")
-// 	}
-
-// 	// parse as CSV
-// 	reader := csv.NewReader(strings.NewReader(string(fileBytes)))
-// 	rows, csvErr := reader.ReadAll()
-// 	if csvErr != nil {
-// 		return nil, errors.Default.Wrap(csvErr, "failed to parse CSV")
-// 	}
-
-// 	if len(rows) < 2 {
-// 		return nil, errors.Default.New("file is empty or has no data rows")
-// 	}
-
-// 	// fetch all users, teams, roles
-// 	var users []crossdomain.User
-// 	err := db.All(&users, dal.From(&crossdomain.User{}))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var teams []crossdomain.Team
-// 	err = db.All(&teams, dal.From(&crossdomain.Team{}))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var roles []crossdomain.Role
-// 	err = db.All(&roles, dal.From(&crossdomain.Role{}))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// build lookup maps
-// 	userByName := make(map[string]crossdomain.User)
-// 	for _, u := range users {
-// 		userByName[strings.ToLower(u.Name)] = u
-// 	}
-// 	teamByName := make(map[string]crossdomain.Team)
-// 	for _, t := range teams {
-// 		teamByName[strings.ToLower(t.Name)] = t
-// 	}
-// 	roleByName := make(map[string]crossdomain.Role)
-// 	for _, r := range roles {
-// 		roleByName[strings.ToLower(r.Name)] = r
-// 	}
-
-// 	// find header columns
-// 	headers := rows[0]
-// 	colIndex := make(map[string]int)
-// 	for i, h := range headers {
-// 		colIndex[strings.ToLower(strings.TrimSpace(h))] = i
-// 	}
-
-// 	nameCol, nameOk := colIndex["name"]
-// 	teamCol, teamOk := colIndex["team"]
-// 	roleCol, roleOk := colIndex["role"]
-
-// 	if !nameOk {
-// 		return nil, errors.Default.New("CSV must have a 'name' column")
-// 	}
-
-// 	saved := 0
-// 	skipped := 0
-
-// 	for _, cols := range rows[1:] {
-// 		if len(cols) == 0 {
-// 			continue
-// 		}
-
-// 		name := strings.TrimSpace(cols[nameCol])
-// 		teamName := ""
-// 		roleName := ""
-
-// 		if teamOk && teamCol < len(cols) {
-// 			teamName = strings.TrimSpace(cols[teamCol])
-// 		}
-// 		if roleOk && roleCol < len(cols) {
-// 			roleName = strings.TrimSpace(cols[roleCol])
-// 		}
-
-// 		user, userFound := userByName[strings.ToLower(name)]
-// 		if !userFound {
-// 			skipped++
-// 			continue
-// 		}
-
-// 		team, teamFound := teamByName[strings.ToLower(teamName)]
-// 		role, roleFound := roleByName[strings.ToLower(roleName)]
-
-// 		if !teamFound && !roleFound {
-// 			skipped++
-// 			continue
-// 		}
-
-// 		teamUser := &crossdomain.TeamUser{
-// 			UserId: user.Id,
-// 		}
-// 		if teamFound {
-// 			teamUser.TeamId = team.Id
-// 		}
-// 		if roleFound {
-// 			teamUser.RoleId = role.Id
-// 		}
-// 		teamUser.NoPKModel.CreatedAt = time.Now()
-// 		teamUser.NoPKModel.UpdatedAt = time.Now()
-
-// 		saveErr := db.CreateOrUpdate(teamUser)
-// 		if saveErr != nil {
-// 			skipped++
-// 			continue
-// 		}
-// 		saved++
-// 	}
-
-//		return &plugin.ApiResourceOutput{
-//			Body: map[string]interface{}{
-//				"success": true,
-//				"saved":   saved,
-//				"skipped": skipped,
-//			},
-//			Status: 200,
-//		}, nil
-//	}
 func UploadUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
 	db := basicRes.GetDal()
 
@@ -388,7 +258,13 @@ func UploadUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutpu
 	}
 
 	// insert missing teams
-	teamIndex := len(existingTeams) + 1
+	teamIndex := 0
+	for _, t := range existingTeams {
+		if t.SortingIndex > teamIndex {
+			teamIndex = t.SortingIndex
+		}
+	}
+	teamIndex++
 	for teamName := range uniqueTeams {
 		if _, exists := teamByName[strings.ToLower(teamName)]; !exists {
 			newTeam := crossdomain.Team{
@@ -421,7 +297,13 @@ func UploadUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutpu
 	}
 
 	// insert missing roles
-	roleIndex := len(existingRoles) + 1
+	roleIndex := 0
+	for _, r := range existingRoles {
+		if r.SortingIndex > roleIndex {
+			roleIndex = r.SortingIndex
+		}
+	}
+	roleIndex++
 	for roleName := range uniqueRoles {
 		if _, exists := roleByName[strings.ToLower(roleName)]; !exists {
 			newRole := crossdomain.Role{
@@ -487,6 +369,9 @@ func UploadUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutpu
 			skipped++
 			continue
 		}
+
+		// delete existing first then insert /// fix re-upload issue
+		db.Exec("DELETE FROM team_users WHERE user_id = ?", user.Id)
 
 		teamUser := &crossdomain.TeamUser{
 			UserId: user.Id,

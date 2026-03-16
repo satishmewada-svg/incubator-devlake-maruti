@@ -36,6 +36,7 @@ import {
   ApiKeys,
   NotFound,
   UserConfig,
+  TeamRepoConfig,
 } from '@/routes';
 
 const PATH_PREFIX = import.meta.env.DEVLAKE_PATH_PREFIX ?? '';
@@ -113,9 +114,13 @@ export const router = createBrowserRouter([
         element: <ApiKeys />,
       },
       {
-  path: 'user-config',
-  element: <UserConfig />,
-},
+        path: 'user-config',
+        element: <UserConfig />,
+      },
+     {
+        path: 'team-repo-config',
+        element: <TeamRepoConfig />,
+      },
     ],
   },
   {

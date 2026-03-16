@@ -237,6 +237,15 @@ func (p Github) ApiResources() map[string]map[string]plugin.ApiResourceHandler {
 		"user-mapping/upload": {
 			"POST": api.UploadUserMapping,
 		},
+		"repos": {
+			"GET": api.GetRepos,
+		},
+		"repo-mapping": {
+			"POST": api.SaveRepoTeamMapping,
+		},
+		"repo-mapping/upload": {
+			"POST": api.UploadRepoTeamMapping,
+		},
 		"scope-config/:scopeConfigId/projects": {
 			"GET": api.GetProjectsByScopeConfig,
 		},
