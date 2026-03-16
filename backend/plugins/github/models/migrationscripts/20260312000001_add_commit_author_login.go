@@ -20,36 +20,34 @@ package migrationscripts
 import (
 	"github.com/apache/incubator-devlake/core/context"
 	"github.com/apache/incubator-devlake/core/errors"
-	"github.com/apache/incubator-devlake/core/models/common"
 	"github.com/apache/incubator-devlake/core/plugin"
 	"github.com/apache/incubator-devlake/helpers/migrationhelper"
 )
 
-var _ plugin.MigrationScript = (*addCommitAuthorLogin)(nil)
+var _ plugin.MigrationScript = (*addToolGithubCommitAuthorLogin)(nil)
 
-type addCommitAuthorLogin struct{}
+type addToolGithubCommitAuthorLogin struct{}
 
-type commit20260312000001 struct {
-	common.NoPKModel
-	Sha         string `gorm:"primaryKey;type:varchar(40)"`
+type toolGithubCommit20260312000001 struct {
+	Sha         string `gorm:"primaryKey;type:varchar(255)"`
 	AuthorLogin string `gorm:"type:varchar(255)"`
 }
 
-func (commit20260312000001) TableName() string {
-	return "commits"
+func (toolGithubCommit20260312000001) TableName() string {
+	return "_tool_github_commits"
 }
 
-func (*addCommitAuthorLogin) Up(basicRes context.BasicRes) errors.Error {
+func (*addToolGithubCommitAuthorLogin) Up(basicRes context.BasicRes) errors.Error {
 	return migrationhelper.AutoMigrateTables(
 		basicRes,
-		&commit20260312000001{},
+		&toolGithubCommit20260312000001{},
 	)
 }
 
-func (*addCommitAuthorLogin) Version() uint64 {
+func (*addToolGithubCommitAuthorLogin) Version() uint64 {
 	return 20260312000001
 }
 
-func (*addCommitAuthorLogin) Name() string {
-	return "add author_login to commits table"
+func (*addToolGithubCommitAuthorLogin) Name() string {
+	return "add author_login to _tool_github_commits table"
 }
