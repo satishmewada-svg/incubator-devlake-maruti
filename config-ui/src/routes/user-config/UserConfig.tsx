@@ -64,10 +64,10 @@ const handleUpload = async (file: any) => {
   return false;
 };
   return (
-    <PageHeader
-      breadcrumbs={[{ name: 'User Config', path: '/user-config' }]}
-      description="Manage user team and role assignments. Upload a CSV file to automatically create teams and roles and map them to users, or manually assign teams and roles to individual users. Users are synced directly from GitHub repositories."
-    >
+   <PageHeader
+    breadcrumbs={[{ name: 'User Config', path: '/user-config' }]}
+    description="Manage user team and role assignments. Upload a CSV file with columns 'name', 'team' and 'role' to automatically create teams and roles and map them to users, or manually assign teams and roles to individual users. Users are synced directly from GitHub repositories."
+   >
       <Flex justify="space-between" style={{ marginBottom: 16 }}>
         <Upload beforeUpload={handleUpload} showUploadList={false} accept=".csv">
           <Button icon={<UploadOutlined />}>Upload CSV</Button>

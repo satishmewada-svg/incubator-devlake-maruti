@@ -64,8 +64,8 @@ export const TeamRepoConfig = () => {
 
   return (
     <PageHeader
-      breadcrumbs={[{ name: 'Team Repo Config', path: '/repo-team-config' }]}
-      description="Map repositories to teams. Upload a CSV file to automatically map repositories to teams, or manually assign a team to each repository."
+     breadcrumbs={[{ name: 'Team Repo Config', path: '/repo-team-config' }]}
+     description="Map repositories to teams. Upload a CSV file with columns 'repo' and 'team' to automatically map repositories to teams, or manually assign a team to each repository."
     >
       <Flex justify="space-between" style={{ marginBottom: 16 }}>
         <Upload beforeUpload={handleUpload} showUploadList={false} accept=".csv">
