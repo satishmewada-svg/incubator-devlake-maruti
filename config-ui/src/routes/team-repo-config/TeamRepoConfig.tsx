@@ -51,21 +51,22 @@ export const TeamRepoConfig = () => {
     setSaving(null);
   };
 
-  const handleUpload = async (file: any) => {
-    try {
-      const res = await API.teamRepoConfig.uploadRepoTeamMapping(file);
-      message.success(`Uploaded! ${res.saved} repositories mapped.`);
-      fetchData();
-    } catch {
-      message.error('Upload failed');
-    }
-    return false;
-  };
+ const handleUpload = async (file: any) => {
+  try {
+    const res = await API.teamRepoConfig.uploadRepoTeamMapping(file);
+    message.success(`Uploaded! ${res.saved} repositories mapped, ${res.skipped} skipped.`);
+    fetchData();
+  } catch (err: any) {
+    const errMsg = err?.response?.data?.message || err?.message || 'Upload failed';
+    message.error(errMsg);
+  }
+  return false;
+};
 
   return (
     <PageHeader
      breadcrumbs={[{ name: 'Team Repo Config', path: '/repo-team-config' }]}
-     description="Map repositories to teams. Upload a CSV file with columns 'repo' and 'team' to automatically map repositories to teams, or manually assign a team to each repository."
+     description="Map repositories to teams. Upload a CSV file with columns 'repo' or 'name' and 'team' to automatically map repositories to teams, or manually assign a team to each repository." 
     >
       <Flex justify="space-between" style={{ marginBottom: 16 }}>
         <Upload beforeUpload={handleUpload} showUploadList={false} accept=".csv">

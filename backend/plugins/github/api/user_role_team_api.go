@@ -222,8 +222,17 @@ func UploadUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutpu
 	teamCol, teamOk := colIndex["team"]
 	roleCol, roleOk := colIndex["role"]
 
+	if !nameOk && !teamOk && !roleOk {
+		return nil, errors.Default.New("CSV column headers are incorrect. Required columns: 'name', 'team' and 'role'")
+	}
 	if !nameOk {
-		return nil, errors.Default.New("CSV must have a 'name' column")
+		return nil, errors.Default.New("CSV column header 'name' is missing. Required columns: 'name', 'team' and 'role'")
+	}
+	if !teamOk {
+		return nil, errors.Default.New("CSV column header 'team' is missing. Required columns: 'name', 'team' and 'role'")
+	}
+	if !roleOk {
+		return nil, errors.Default.New("CSV column header 'role' is missing. Required columns: 'name', 'team' and 'role'")
 	}
 
 	// collect unique team and role names from CSV

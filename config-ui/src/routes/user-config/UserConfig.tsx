@@ -57,9 +57,10 @@ const handleUpload = async (file: any) => {
   try {
     const res = await API.userconfig.uploadUserMapping(file);
     message.success(`Uploaded! ${res.saved} users mapped, ${res.skipped} skipped.`);
-    fetchData(); // refresh user list with new team/role
-  } catch {
-    message.error('Upload failed');
+    fetchData();
+  } catch (err: any) {
+    const errMsg = err?.response?.data?.message || err?.message || 'Upload failed';
+    message.error(errMsg);
   }
   return false;
 };
