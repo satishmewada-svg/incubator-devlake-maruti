@@ -81,6 +81,7 @@ func (p GithubGraphql) GetTablesInfo() []dal.Tabler {
 		&models.GithubDeployment{},
 		&graphqlModels.GithubPrReviewThread{},
 		&graphqlModels.GithubPrReviewRequest{},
+		&graphqlModels.GithubPrReviewThreadComment{},
 	}
 }
 

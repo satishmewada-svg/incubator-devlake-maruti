@@ -202,10 +202,37 @@ func ExtractPrs(taskCtx plugin.SubTaskContext) errors.Error {
 					rt.GithubCreatedAt = &c.CreatedAt
 					if c.Author != nil {
 						rt.Author = c.Author.Login
-						extractGraphqlPreAccount(&results, c.Author, data.Options.GithubId, data.Options.ConnectionId)
+						inlineAccount := &GraphqlInlineAccountQuery{
+							GithubAccountEdge: GithubAccountEdge{
+								Login: c.Author.Login,
+							},
+						}
+						extractGraphqlPreAccount(&results, inlineAccount, data.Options.GithubId, data.Options.ConnectionId) /// added by me
 					}
 				}
 				results = append(results, rt)
+
+				for _, c := range thread.Comments.Nodes {
+					authorLogin := ""
+					authorType := ""
+					if c.Author != nil {
+						authorLogin = c.Author.Login
+						authorType = c.Author.TypeName /// User, Bot, Mannequin etc
+					}
+					results = append(results, &graphqlModels.GithubPrReviewThreadComment{
+						ConnectionId:    data.Options.ConnectionId,
+						Repo:            data.Options.Name,
+						PrNumber:        githubPr.Number,
+						ThreadId:        thread.Id,
+						CommentId:       c.Id,
+						PrUrl:           githubPr.Url,
+						PrId:            prDidGen.Generate(data.Options.ConnectionId, githubPr.GithubId),
+						AuthorLogin:     authorLogin,
+						AuthorType:      authorType,
+						Body:            c.Body,
+						GithubCreatedAt: &c.CreatedAt,
+					})
+				}
 			}
 			return results, nil
 		},

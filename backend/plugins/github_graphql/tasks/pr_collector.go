@@ -115,13 +115,17 @@ type GraphqlQueryReviewThread struct {
 	IsOutdated bool   `graphql:"isOutdated"`
 	Comments   struct {
 		Nodes []GraphqlQueryReviewThreadComment `graphql:"nodes"`
-	} `graphql:"comments(first: 1)"`
+	} `graphql:"comments(first: 100)"`
 }
 
 type GraphqlQueryReviewThreadComment struct {
+	Id        string    `graphql:"id"`
 	Body      string    `graphql:"body"`
 	CreatedAt time.Time `graphql:"createdAt"`
-	Author    *GraphqlInlineAccountQuery
+	Author    *struct {
+		Login    string `graphql:"login"`
+		TypeName string `graphql:"__typename"`
+	} `graphql:"author"`
 }
 
 type ReviewRequestNode struct {

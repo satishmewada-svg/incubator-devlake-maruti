@@ -18,17 +18,28 @@ limitations under the License.
 package migrationscripts
 
 import (
+	"github.com/apache/incubator-devlake/core/context"
+	"github.com/apache/incubator-devlake/core/errors"
 	"github.com/apache/incubator-devlake/core/plugin"
+	"github.com/apache/incubator-devlake/helpers/migrationhelper"
+	"github.com/apache/incubator-devlake/plugins/github_graphql/model"
 )
 
-// All return all the migration scripts
-func All() []plugin.MigrationScript {
-	return []plugin.MigrationScript{
-		new(flushRawData),
-		new(addFinishedDateToGithubDeployment),
-		new(addGithubPrReviewThreads),
-		new(addPrReviewThreadsIfMissing),
-		new(addGithubPrReviewRequests),
-		new(addPrReviewThreadComments),
-	}
+var _ plugin.MigrationScript = (*addPrReviewThreadComments)(nil)
+
+type addPrReviewThreadComments struct{}
+
+func (*addPrReviewThreadComments) Up(basicRes context.BasicRes) errors.Error {
+	return migrationhelper.AutoMigrateTables(
+		basicRes,
+		&model.GithubPrReviewThreadComment{},
+	)
+}
+
+func (*addPrReviewThreadComments) Version() uint64 {
+	return 20260320000001
+}
+
+func (*addPrReviewThreadComments) Name() string {
+	return "add github pr review thread comments table"
 }
