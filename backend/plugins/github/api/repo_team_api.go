@@ -21,6 +21,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -71,6 +72,17 @@ func GetRepos(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors
 		repoTeamMap[tr.RepoId] = tr.TeamId
 	}
 
+	// fetch teams for sorting
+	var teams []crossdomain.Team
+	err = db.All(&teams, dal.From(&crossdomain.Team{}))
+	if err != nil {
+		return nil, err
+	}
+	teamNameById := make(map[string]string, len(teams))
+	for _, t := range teams {
+		teamNameById[t.Id] = t.Name
+	}
+
 	result := make([]RepoWithTeam, 0, len(repoRows))
 	for _, r := range repoRows {
 		result = append(result, RepoWithTeam{
@@ -80,6 +92,20 @@ func GetRepos(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors
 			TeamId: repoTeamMap[r.Id],
 		})
 	}
+
+	sort.SliceStable(result, func(i, j int) bool {
+		ti := strings.ToLower(teamNameById[result[i].TeamId])
+		tj := strings.ToLower(teamNameById[result[j].TeamId])
+		if ti == tj {
+			ri := strings.ToLower(strings.TrimSpace(result[i].Name))
+			rj := strings.ToLower(strings.TrimSpace(result[j].Name))
+			if ri == rj {
+				return result[i].Id < result[j].Id
+			}
+			return ri < rj
+		}
+		return ti < tj
+	})
 
 	return &plugin.ApiResourceOutput{
 		Body:   map[string]interface{}{"repos": result},

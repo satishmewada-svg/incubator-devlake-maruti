@@ -6,7 +6,6 @@ import API from '@/api';
 
 export const UserConfig = () => {
   const [users, setUsers] = useState<any[]>([]);
-  const [teams, setTeams] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
@@ -14,13 +13,11 @@ export const UserConfig = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersRes, teamsRes, rolesRes] = await Promise.all([
+      const [usersRes, rolesRes] = await Promise.all([
         API.userconfig.getUsers(),
-        API.userconfig.getTeams(),
         API.userconfig.getRoles(),
       ]);
       setUsers(usersRes.users || []);
-      setTeams(teamsRes.teams || []);
       setRoles(rolesRes.roles || []);
     } catch (err) {
       message.error('Failed to load data');
@@ -32,7 +29,7 @@ export const UserConfig = () => {
     fetchData();
   }, []);
 
-  const handleChange = (userId: string, field: 'team_id' | 'role_id', value: string) => {
+  const handleChange = (userId: string, field: 'role_id', value: string) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, [field]: value } : u))
     );
@@ -53,22 +50,23 @@ export const UserConfig = () => {
     setSaving(null);
   };
 
-const handleUpload = async (file: any) => {
-  try {
-    const res = await API.userconfig.uploadUserMapping(file);
-    message.success(`Uploaded! ${res.saved} users mapped, ${res.skipped} skipped.`);
-    fetchData();
-  } catch (err: any) {
-    const errMsg = err?.response?.data?.message || err?.message || 'Upload failed';
-    message.error(errMsg);
-  }
-  return false;
-};
+  const handleUpload = async (file: any) => {
+    try {
+      const res = await API.userconfig.uploadUserMapping(file);
+      message.success(`Uploaded! ${res.saved} users mapped, ${res.skipped} skipped.`);
+      fetchData();
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Upload failed';
+      message.error(errMsg);
+    }
+    return false;
+  };
+
   return (
-   <PageHeader
-    breadcrumbs={[{ name: 'User Config', path: '/user-config' }]}
-    description="Manage user team and role assignments. Upload a CSV file with columns 'name', 'team' and 'role' to automatically create teams and roles and map them to users, or manually assign teams and roles to individual users. Users are synced directly from GitHub repositories."
-   >
+    <PageHeader
+      breadcrumbs={[{ name: 'User Config', path: '/user-config' }]}
+      description="Manage user role assignments. Upload a CSV file with columns 'name' and 'role' to automatically create roles and map them to users, or manually assign roles to individual users. Users are synced directly from GitHub repositories."
+    >
       <Flex justify="space-between" style={{ marginBottom: 16 }}>
         <Upload beforeUpload={handleUpload} showUploadList={false} accept=".csv">
           <Button icon={<UploadOutlined />}>Upload CSV</Button>
@@ -92,21 +90,6 @@ const handleUpload = async (file: any) => {
                   <div style={{ fontSize: 12, color: '#888' }}>{record.email}</div>
                 )}
               </div>
-            ),
-          },
-          {
-            title: 'Team',
-            render: (_, record) => (
-              <Select
-                style={{ width: 220 }}
-                placeholder="Select Team"
-                value={record.team_id || undefined}
-                options={teams.map((t) => ({
-                  label: t.Name,
-                  value: t.id,
-                }))}
-                onChange={(val) => handleChange(record.id, 'team_id', val)}
-              />
             ),
           },
           {

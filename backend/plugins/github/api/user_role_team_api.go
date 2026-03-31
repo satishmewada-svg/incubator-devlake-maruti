@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -73,6 +74,17 @@ func GetUsers(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors
 		tuMap[tu.UserId] = tu
 	}
 
+	// fetch roles for sorting
+	var roles []crossdomain.Role
+	err = db.All(&roles, dal.From(&crossdomain.Role{}))
+	if err != nil {
+		return nil, err
+	}
+	roleNameById := make(map[string]string, len(roles))
+	for _, r := range roles {
+		roleNameById[r.Id] = r.Name
+	}
+
 	result := make([]UserWithAssignment, 0, len(users))
 	for _, u := range users {
 		ua := UserWithAssignment{
@@ -87,6 +99,26 @@ func GetUsers(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors
 		}
 		result = append(result, ua)
 	}
+
+	sort.SliceStable(result, func(i, j int) bool {
+		ri := strings.ToLower(roleNameById[result[i].RoleId])
+		rj := strings.ToLower(roleNameById[result[j].RoleId])
+		if ri == rj {
+			li := strings.ToLower(strings.TrimSpace(result[i].UserFullName))
+			lj := strings.ToLower(strings.TrimSpace(result[j].UserFullName))
+			if li == "" {
+				li = strings.ToLower(strings.TrimSpace(result[i].Name))
+			}
+			if lj == "" {
+				lj = strings.ToLower(strings.TrimSpace(result[j].Name))
+			}
+			if li == lj {
+				return result[i].Id < result[j].Id
+			}
+			return li < lj
+		}
+		return ri < rj
+	})
 
 	return &plugin.ApiResourceOutput{
 		Body:   map[string]interface{}{"users": result},
