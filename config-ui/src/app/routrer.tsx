@@ -37,6 +37,8 @@ import {
   NotFound,
   UserConfig,
   TeamRepoConfig,
+  TeamConfig,
+  RoleConfig,
 } from '@/routes';
 
 const PATH_PREFIX = import.meta.env.DEVLAKE_PATH_PREFIX ?? '';
@@ -117,7 +119,15 @@ export const router = createBrowserRouter([
         path: 'user-config',
         element: <UserConfig />,
       },
-     {
+      {
+        path: 'team-config',
+        element: <TeamConfig />,
+      },
+      {
+        path: 'role-config',
+        element: <RoleConfig />,
+      },
+      {
         path: 'team-repo-config',
         element: <TeamRepoConfig />,
       },

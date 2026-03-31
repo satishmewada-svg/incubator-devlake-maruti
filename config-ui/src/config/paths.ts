@@ -35,5 +35,7 @@ export const PATHS = {
   PIPELINES: () => `${PATH_PREFIX}/advanced/pipelines`,
   APIKEYS: () => `${PATH_PREFIX}/keys`,
   USERCONFIG:()=>`${PATH_PREFIX}/user-config`,
+  TEAMCONFIG:()=>`${PATH_PREFIX}/team-config`,
+  ROLECONFIG:()=>`${PATH_PREFIX}/role-config`,
   REPOTEAMCONFIG:()=>`${PATH_PREFIX}/team-repo-config`
 };

@@ -73,14 +73,24 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: `${PATH_PREFIX}/user-config`,
-    label: 'User Config',
+    label: 'User Role Config',
     icon: <UserOutlined />,
   },
   {
-   key: `${PATH_PREFIX}/team-repo-config`,
-   label: 'Team Repo Config',
-   icon: <ProjectOutlined />,
-  }
+    key: `${PATH_PREFIX}/team-repo-config`,
+    label: 'Team Repo Config',
+    icon: <ProjectOutlined />,
+  },
+  {
+    key: `${PATH_PREFIX}/team-config`,
+    label: 'Team Config',
+    icon: <UserOutlined />,
+  },
+  {
+    key: `${PATH_PREFIX}/role-config`,
+    label: 'Role Config',
+    icon: <UserOutlined />,
+  },
 ];
 
 const getMenuMatchs = (items: MenuItem[], parentKey?: string) => {

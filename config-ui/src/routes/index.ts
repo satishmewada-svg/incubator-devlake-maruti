@@ -26,6 +26,7 @@ export * from './not-found';
 export * from './onboard';
 export * from './pipeline';
 export * from './project';
-export * from './user-config'
-export * from './team-repo-config'
-
+export * from './user-config';
+export * from './team-repo-config';
+export * from './team-config';
+export * from './role-config';

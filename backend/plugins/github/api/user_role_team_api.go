@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,6 +33,22 @@ import (
 	"github.com/apache/incubator-devlake/core/models/domainlayer/crossdomain"
 	"github.com/apache/incubator-devlake/core/plugin"
 )
+
+const teamIdPrefix = "github:Team:"
+const roleIdPrefix = "github:Role:"
+
+func nextPrefixedId(ids []string, prefix string) string {
+	maxId := 0
+	for _, id := range ids {
+		if strings.HasPrefix(id, prefix) {
+			val := strings.TrimPrefix(id, prefix)
+			if n, err := strconv.Atoi(val); err == nil && n > maxId {
+				maxId = n
+			}
+		}
+	}
+	return fmt.Sprintf("%s%d", prefix, maxId+1)
+}
 
 // GetUsers returns all users with their current team and role
 // @Summary get all users
@@ -440,6 +457,230 @@ func UploadUserMapping(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutpu
 			"saved":   saved,
 			"skipped": skipped,
 		},
+		Status: 200,
+	}, nil
+}
+
+// CreateTeam creates a new team with a generated id
+// @Summary create team
+// @Tags plugins/github
+// @Router /plugins/github/teams [POST]
+func CreateTeam(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
+	db := basicRes.GetDal()
+
+	type CreateRequest struct {
+		Name string `json:"name"`
+	}
+
+	body, err := errors.Convert01(json.Marshal(input.Body))
+	if err != nil {
+		return nil, err
+	}
+	var req CreateRequest
+	if jsonErr := json.Unmarshal(body, &req); jsonErr != nil {
+		return nil, errors.Default.Wrap(jsonErr, "failed to parse request body")
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.Default.New("name is required")
+	}
+
+	var teams []crossdomain.Team
+	err = db.All(&teams, dal.From(&crossdomain.Team{}))
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(teams))
+	for _, t := range teams {
+		ids = append(ids, t.Id)
+	}
+	teamId := nextPrefixedId(ids, teamIdPrefix)
+
+	team := &crossdomain.Team{
+		DomainEntity: domainlayer.NewDomainEntity(teamId),
+		Name:         strings.TrimSpace(req.Name),
+	}
+	team.NoPKModel.CreatedAt = time.Now()
+	team.NoPKModel.UpdatedAt = time.Now()
+
+	if err = db.CreateOrUpdate(team); err != nil {
+		return nil, err
+	}
+
+	return &plugin.ApiResourceOutput{
+		Body:   map[string]interface{}{"team": team},
+		Status: 200,
+	}, nil
+}
+
+// UpdateTeam updates a team's name
+// @Summary update team
+// @Tags plugins/github
+// @Router /plugins/github/teams/{teamId} [PATCH]
+func UpdateTeam(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
+	db := basicRes.GetDal()
+	teamId := input.Params["teamId"]
+	if strings.TrimSpace(teamId) == "" {
+		return nil, errors.Default.New("teamId is required")
+	}
+
+	type UpdateRequest struct {
+		Name string `json:"name"`
+	}
+
+	body, err := errors.Convert01(json.Marshal(input.Body))
+	if err != nil {
+		return nil, err
+	}
+	var req UpdateRequest
+	if jsonErr := json.Unmarshal(body, &req); jsonErr != nil {
+		return nil, errors.Default.Wrap(jsonErr, "failed to parse request body")
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.Default.New("name is required")
+	}
+
+	if err = db.Exec("UPDATE teams SET name = ?, updated_at = ? WHERE id = ?", strings.TrimSpace(req.Name), time.Now(), teamId); err != nil {
+		return nil, err
+	}
+
+	return &plugin.ApiResourceOutput{
+		Body:   map[string]interface{}{"success": true},
+		Status: 200,
+	}, nil
+}
+
+// DeleteTeam removes a team and its repo mappings (does not affect team_users)
+// @Summary delete team
+// @Tags plugins/github
+// @Router /plugins/github/teams/{teamId} [DELETE]
+func DeleteTeam(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
+	db := basicRes.GetDal()
+	teamId := input.Params["teamId"]
+	if strings.TrimSpace(teamId) == "" {
+		return nil, errors.Default.New("teamId is required")
+	}
+
+	if err := db.Exec("DELETE FROM team_repo WHERE team_id = ?", teamId); err != nil {
+		return nil, err
+	}
+	if err := db.Exec("DELETE FROM teams WHERE id = ?", teamId); err != nil {
+		return nil, err
+	}
+
+	return &plugin.ApiResourceOutput{
+		Body:   map[string]interface{}{"success": true},
+		Status: 200,
+	}, nil
+}
+
+// CreateRole creates a new role with a generated id
+// @Summary create role
+// @Tags plugins/github
+// @Router /plugins/github/roles [POST]
+func CreateRole(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
+	db := basicRes.GetDal()
+
+	type CreateRequest struct {
+		Name string `json:"name"`
+	}
+
+	body, err := errors.Convert01(json.Marshal(input.Body))
+	if err != nil {
+		return nil, err
+	}
+	var req CreateRequest
+	if jsonErr := json.Unmarshal(body, &req); jsonErr != nil {
+		return nil, errors.Default.Wrap(jsonErr, "failed to parse request body")
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.Default.New("name is required")
+	}
+
+	var roles []crossdomain.Role
+	err = db.All(&roles, dal.From(&crossdomain.Role{}))
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(roles))
+	for _, r := range roles {
+		ids = append(ids, r.Id)
+	}
+	roleId := nextPrefixedId(ids, roleIdPrefix)
+
+	role := &crossdomain.Role{
+		DomainEntity: domainlayer.NewDomainEntity(roleId),
+		Name:         strings.TrimSpace(req.Name),
+	}
+	role.NoPKModel.CreatedAt = time.Now()
+	role.NoPKModel.UpdatedAt = time.Now()
+
+	if err = db.CreateOrUpdate(role); err != nil {
+		return nil, err
+	}
+
+	return &plugin.ApiResourceOutput{
+		Body:   map[string]interface{}{"role": role},
+		Status: 200,
+	}, nil
+}
+
+// UpdateRole updates a role's name
+// @Summary update role
+// @Tags plugins/github
+// @Router /plugins/github/roles/{roleId} [PATCH]
+func UpdateRole(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
+	db := basicRes.GetDal()
+	roleId := input.Params["roleId"]
+	if strings.TrimSpace(roleId) == "" {
+		return nil, errors.Default.New("roleId is required")
+	}
+
+	type UpdateRequest struct {
+		Name string `json:"name"`
+	}
+
+	body, err := errors.Convert01(json.Marshal(input.Body))
+	if err != nil {
+		return nil, err
+	}
+	var req UpdateRequest
+	if jsonErr := json.Unmarshal(body, &req); jsonErr != nil {
+		return nil, errors.Default.Wrap(jsonErr, "failed to parse request body")
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.Default.New("name is required")
+	}
+
+	if err = db.Exec("UPDATE roles SET name = ?, updated_at = ? WHERE id = ?", strings.TrimSpace(req.Name), time.Now(), roleId); err != nil {
+		return nil, err
+	}
+
+	return &plugin.ApiResourceOutput{
+		Body:   map[string]interface{}{"success": true},
+		Status: 200,
+	}, nil
+}
+
+// DeleteRole removes a role and its user mappings
+// @Summary delete role
+// @Tags plugins/github
+// @Router /plugins/github/roles/{roleId} [DELETE]
+func DeleteRole(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
+	db := basicRes.GetDal()
+	roleId := input.Params["roleId"]
+	if strings.TrimSpace(roleId) == "" {
+		return nil, errors.Default.New("roleId is required")
+	}
+
+	if err := db.Exec("DELETE FROM team_users WHERE role_id = ?", roleId); err != nil {
+		return nil, err
+	}
+	if err := db.Exec("DELETE FROM roles WHERE id = ?", roleId); err != nil {
+		return nil, err
+	}
+
+	return &plugin.ApiResourceOutput{
+		Body:   map[string]interface{}{"success": true},
 		Status: 200,
 	}, nil
 }

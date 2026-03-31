@@ -227,9 +227,19 @@ func (p Github) ApiResources() map[string]map[string]plugin.ApiResourceHandler {
 		},
 		"teams": {
 			"GET": api.GetTeams,
+			"POST": api.CreateTeam,
+		},
+		"teams/:teamId": {
+			"PATCH": api.UpdateTeam,
+			"DELETE": api.DeleteTeam,
 		},
 		"roles": {
 			"GET": api.GetRoles,
+			"POST": api.CreateRole,
+		},
+		"roles/:roleId": {
+			"PATCH": api.UpdateRole,
+			"DELETE": api.DeleteRole,
 		},
 		"user-mapping": {
 			"POST": api.SaveUserMapping,
