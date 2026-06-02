@@ -208,7 +208,8 @@ func (r *Libgit2RepoCollector) CollectBranches(subtaskCtx plugin.SubTaskContext)
 	if err != nil {
 		return errors.Convert(err)
 	}
-	return errors.Convert(repoInter.ForEach(func(branch *git.Branch, branchType git.BranchType) error {
+	seenBranchRefIds := make(map[string]struct{})
+	err = errors.Convert(repoInter.ForEach(func(branch *git.Branch, branchType git.BranchType) error {
 		select {
 		case <-subtaskCtx.GetContext().Done():
 			return subtaskCtx.GetContext().Err()
@@ -239,11 +240,50 @@ func (r *Libgit2RepoCollector) CollectBranches(subtaskCtx plugin.SubTaskContext)
 			if err1 != nil && err1.Error() != TypeNotMatchError {
 				return err1
 			}
+			seenBranchRefIds[ref.Id] = struct{}{}
 			subtaskCtx.IncProgress(1)
 			return nil
 		}
 		return nil
 	}))
+	if err != nil {
+		return err
+	}
+	db := subtaskCtx.GetDal()
+	rows, err := db.Cursor(
+		dal.From(&code.Ref{}),
+		dal.Select("id"),
+		dal.Where("repo_id = ? AND ref_type = ? AND _raw_data_table = ? AND _raw_data_params = ?", r.id, BRANCH, "gitextractor", r.id),
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	staleRefIds := make([]string, 0)
+	for rows.Next() {
+		ref := &code.Ref{}
+		if err := db.Fetch(rows, ref); err != nil {
+			return err
+		}
+		if _, ok := seenBranchRefIds[ref.Id]; !ok {
+			staleRefIds = append(staleRefIds, ref.Id)
+		}
+	}
+	const deleteChunkSize = 500
+	for i := 0; i < len(staleRefIds); i += deleteChunkSize {
+		end := i + deleteChunkSize
+		if end > len(staleRefIds) {
+			end = len(staleRefIds)
+		}
+		if err := db.Delete(
+			&code.Ref{},
+			dal.Where("id in ?", staleRefIds[i:end]),
+			dal.Where("repo_id = ? AND ref_type = ? AND _raw_data_table = ? AND _raw_data_params = ?", r.id, BRANCH, "gitextractor", r.id),
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CollectCommits Collect data from each commit, we can also get the diff line
