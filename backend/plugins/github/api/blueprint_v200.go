@@ -89,18 +89,13 @@ func makeDataSourcePipelinePlanV200(
 		}
 		// refdiff
 		if scopeConfig != nil && scopeConfig.Refdiff != nil {
-			// add a new task to next stage
-			j := i + 1
-			if j == len(plan) {
-				plan = append(plan, nil)
-			}
 			refdiffOp := scopeConfig.Refdiff
 			refdiffOp["repoId"] = didgen.NewDomainIdGenerator(&models.GithubRepo{}).Generate(connection.ID, githubRepo.GithubId)
-			plan[j] = coreModels.PipelineStage{
-				{
-					Plugin:  "refdiff",
-					Options: refdiffOp,
-				},
+			if err := appendGithubPipelineStageTask(&plan, i+1, &coreModels.PipelineTask{
+				Plugin:  "refdiff",
+				Options: refdiffOp,
+			}); err != nil {
+				return nil, err
 			}
 			scopeConfig.Refdiff = nil
 		}
@@ -138,7 +133,20 @@ func makeDataSourcePipelinePlanV200(
 					"excludeFileExtensions": scopeConfig.PrSizeExcludedFileExtensions,
 				},
 			})
-
+			if err := appendGithubPipelineStageTask(&plan, i+1, &coreModels.PipelineTask{
+				Plugin: "github",
+				Subtasks: []string{
+					tasks.EnrichBranchRefCreatedDatesMeta.Name,
+				},
+				Options: map[string]interface{}{
+					"connectionId": githubRepo.ConnectionId,
+					"githubId":     githubRepo.GithubId,
+					"name":         githubRepo.FullName,
+					"fullName":     githubRepo.FullName,
+				},
+			}); err != nil {
+				return nil, err
+			}
 		}
 		plan[i] = stage
 	}
@@ -193,6 +201,20 @@ func makeScopesV200(
 		}
 	}
 	return scopes, nil
+}
+
+func appendGithubPipelineStageTask(plan *coreModels.PipelinePlan, stageIndex int, task *coreModels.PipelineTask) errors.Error {
+	if stageIndex < 0 {
+		return errors.BadInput.New("invalid pipeline stage index")
+	}
+	for stageIndex >= len(*plan) {
+		*plan = append(*plan, nil)
+	}
+	if (*plan)[stageIndex] == nil {
+		(*plan)[stageIndex] = coreModels.PipelineStage{}
+	}
+	(*plan)[stageIndex] = append((*plan)[stageIndex], task)
+	return nil
 }
 
 func addGithub(
