@@ -27,6 +27,7 @@ import (
 
 	"github.com/apache/incubator-devlake/core/dal"
 	"github.com/apache/incubator-devlake/core/errors"
+	"github.com/apache/incubator-devlake/core/log"
 	"github.com/apache/incubator-devlake/core/models/common"
 	"github.com/apache/incubator-devlake/core/models/domainlayer/code"
 	"github.com/apache/incubator-devlake/core/models/domainlayer/didgen"
@@ -68,7 +69,7 @@ func EnrichBranchRefCreatedDates(taskCtx plugin.SubTaskContext) errors.Error {
 	logger := taskCtx.GetLogger()
 
 	domainRepoID := didgen.NewDomainIdGenerator(&models.GithubRepo{}).Generate(data.Options.ConnectionId, data.Options.GithubId)
-	branchDates, err := collectGithubBranchCreatedDates(data, db)
+	branchDates, err := collectGithubBranchCreatedDates(data, db, logger)
 	if err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ func EnrichBranchRefCreatedDates(taskCtx plugin.SubTaskContext) errors.Error {
 	return nil
 }
 
-func collectGithubBranchCreatedDates(data *GithubTaskData, db dal.Dal) (map[string]time.Time, errors.Error) {
+func collectGithubBranchCreatedDates(data *GithubTaskData, db dal.Dal, logger log.Logger) (map[string]time.Time, errors.Error) {
 	branchDates := make(map[string]time.Time)
 
 	page := 1
@@ -118,6 +119,11 @@ func collectGithubBranchCreatedDates(data *GithubTaskData, db dal.Dal) (map[stri
 			return nil, err
 		}
 		if res.StatusCode != http.StatusOK {
+			if res.StatusCode == http.StatusUnprocessableEntity || res.StatusCode == http.StatusNotFound {
+				logger.Debug("repo events for %s returned %d, skipping branch created date enrichment", data.Options.Name, res.StatusCode)
+				res.Body.Close()
+				break
+			}
 			res.Body.Close()
 			return nil, errors.HttpStatus(res.StatusCode).New(fmt.Sprintf("failed to list repo events for %s", data.Options.Name))
 		}
